@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍕 ศึกรวมร่างเศษส่วน (Fraction Fusion)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #fef08a; /* bg-yellow-200 */
+            background-image: radial-gradient(#fde047 2px, transparent 2px);
+            background-size: 20px 20px;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .card-selected {
+            transform: translateY(-15px) scale(1.05);
+            border-color: #ef4444; /* red-500 */
+            box-shadow: 0 0 0 4px #ef4444, 0 20px 25px -5px rgba(239, 68, 68, 0.5);
+        }
+
+        /* Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+        .shake { animation: shake 0.4s ease-in-out; }
+        
+        @keyframes pop {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-start p-4 text-gray-800">
+
+    <!-- Header -->
+    <header class="w-full max-w-4xl bg-white rounded-3xl shadow-lg p-6 mb-8 flex flex-col md:flex-row justify-between items-center border-b-8 border-orange-400">
+        <div class="flex items-center gap-4 mb-4 md:mb-0">
+            <div class="text-5xl">🧑‍🍳</div>
+            <div>
+                <h1 class="text-3xl font-bold text-orange-600">ศึกรวมร่างเศษส่วน</h1>
+                <p class="text-gray-500 font-semibold">จับคู่พิซซ่า หา ค.ร.น. แล้วรวมถาด!</p>
+            </div>
+        </div>
+        <div class="flex gap-6 text-center">
+            <div class="bg-orange-100 px-6 py-2 rounded-2xl border-2 border-orange-200">
+                <p class="text-sm text-orange-600 font-bold">คะแนน (คู่)</p>
+                <p class="text-3xl font-bold text-orange-600" id="score-display">0</p>
+            </div>
+            <div class="bg-blue-100 px-6 py-2 rounded-2xl border-2 border-blue-200">
+                <p class="text-sm text-blue-600 font-bold">การ์ดในกอง</p>
+                <p class="text-3xl font-bold text-blue-600" id="deck-count">0</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Game Board -->
+    <main class="w-full max-w-5xl">
+        <div class="text-center mb-4">
+            <h2 class="text-xl font-bold text-gray-700 bg-white/80 inline-block px-6 py-2 rounded-full shadow-sm">
+                👆 เลือกการ์ด 2 ใบ ที่ต้องการนำมาบวกกัน
+            </h2>
+        </div>
+        
+        <!-- Table Cards -->
+        <div id="table-container" class="flex flex-wrap justify-center gap-6 p-4">
+            <!-- Cards will be injected here via JS -->
+        </div>
+    </main>
+
+    <!-- Custom Modal (Replaces alert/prompt) -->
+    <div id="game-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full mx-4 transform transition-all pop-in relative border-t-8 border-orange-500">
+            
+            <!-- Close Button -->
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6" id="modal-title">ภารกิจรวมร่างพิซซ่า!</h2>
+            
+            <!-- Show Selected Pizzas -->
+            <div class="flex justify-center items-center gap-4 mb-6 bg-orange-50 p-4 rounded-2xl" id="modal-visuals">
+                <!-- SVG injected here -->
+            </div>
+
+            <!-- Step 1: LCD -->
+            <div id="step-lcd" class="block">
+                <p class="text-lg font-semibold text-gray-700 mb-2">1. ต้องแบ่งพิซซ่าให้ชิ้นเท่ากันก่อน!</p>
+                <p class="mb-4 text-gray-600">ตัวส่วนร่วมที่น้อยที่สุด (ค.ร.น.) คือเท่าไหร่?</p>
+                <div class="flex gap-2">
+                    <input type="number" id="input-lcd" class="w-full text-2xl text-center p-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none" placeholder="พิมพ์ตัวเลข...">
+                    <button onclick="checkLCD()" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-colors">ตรวจ!</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Sum (Hidden initially) -->
+            <div id="step-sum" class="hidden">
+                <p class="text-lg font-semibold text-green-600 mb-2">🎉 เก่งมาก! ค.ร.น. คือ <span id="display-lcm"></span></p>
+                <p class="mb-4 text-gray-600">2. ตอนนี้ชิ้นเท่ากันแล้ว เอาจำนวนชิ้นมาบวกกันได้เลย!</p>
+                <div class="flex items-center justify-center gap-4 text-2xl font-bold">
+                    <!-- Fraction Math Display -->
+                    <div class="flex flex-col items-center">
+                        <input type="number" id="input-num" class="w-24 text-center p-2 border-2 border-orange-400 rounded-lg focus:outline-none" placeholder="?">
+                        <div class="w-24 h-1 bg-black my-1"></div>
+                        <div id="display-denom" class="w-24 text-center p-2">12</div>
+                    </div>
+                </div>
+                <button onclick="checkSum()" class="w-full mt-6 bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-3 rounded-xl transition-colors shadow-lg shadow-green-200">รวมร่าง!</button>
+            </div>
+
+            <!-- Error Message -->
+            <div id="modal-error" class="text-red-500 text-center font-semibold mt-4 hidden">
+                ผิดจ้า! ลองคิดใหม่อีกทีนะ ✌️
+            </div>
+        </div>
+    </div>
+
+    <!-- Simple Message Alert -->
+    <div id="msg-box" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-xl font-bold transition-all duration-300 opacity-0 pointer-events-none z-50 flex items-center gap-3">
+        <span id="msg-icon" class="text-2xl"></span>
+        <span id="msg-text"></span>
+    </div>
+
+    <script>
+        // Game State
+        const fractionList = [
+            {n:1, d:2}, {n:1, d:2}, {n:1, d:3}, {n:1, d:3}, {n:2, d:3},
+            {n:1, d:4}, {n:1, d:4}, {n:3, d:4}, {n:1, d:6}, {n:1, d:6}, 
+            {n:5, d:6}, {n:1, d:12}, {n:5, d:12}, {n:7, d:12},
+            {n:1, d:5}, {n:2, d:5}, {n:1, d:10}, {n:3, d:10}
+        ];
+        
+        let deck = [];
+        let table = [];
+        let selectedIndexes = [];
+        let score = 0;
+        let currentLCM = 0;
+
+        // Math Helpers
+        const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+        const lcm = (a, b) => (a * b) / gcd(a, b);
+
+        // Initialize Game
+        function initGame() {
+            // Create a playing deck (duplicate some for more pairs)
+            deck = [...fractionList, ...fractionList].sort(() => Math.random() - 0.5);
+            score = 0;
+            selectedIndexes = [];
+            table = [];
+            
+            // Deal initial 5 cards
+            dealCards();
+            updateUI();
+        }
+
+        // Deal cards to fill table (up to 5)
+        function dealCards() {
+            while (table.length < 5 && deck.length > 0) {
+                table.push(deck.pop());
+            }
+        }
+
+        // Generate SVG for a fraction pizza
+        function getPizzaSVG(n, d, size = 120) {
+            let svg = `<svg width="${size}" height="${size}" viewBox="0 0 100 100" class="drop-shadow-md">`;
+            // Crust
+            svg += `<circle cx="50" cy="50" r="48" fill="#fef08a" stroke="#f59e0b" stroke-width="4"/>`;
+            
+            if (d === 1) {
+                svg += `<circle cx="50" cy="50" r="46" fill="#ef4444"/>`;
+            } else {
+                for(let i = 0; i < d; i++) {
+                    let startAngle = (i * 2 * Math.PI) / d - Math.PI / 2;
+                    let endAngle = ((i + 1) * 2 * Math.PI) / d - Math.PI / 2;
+                    
+                    let x1 = 50 + 46 * Math.cos(startAngle);
+                    let y1 = 50 + 46 * Math.sin(startAngle);
+                    let x2 = 50 + 46 * Math.cos(endAngle);
+                    let y2 = 50 + 46 * Math.sin(endAngle);
+                    
+                    let largeArc = ( (2 * Math.PI) / d > Math.PI ) ? 1 : 0;
+                    let fill = i < n ? '#ef4444' : '#fff7ed'; // Red for fraction, white for empty
+                    
+                    // Draw slice
+                    svg += `<path d="M 50 50 L ${x1} ${y1} A 46 46 0 ${largeArc} 1 ${x2} ${y2} Z" fill="${fill}" stroke="#f59e0b" stroke-width="1.5" />`;
+                }
+            }
+            svg += `</svg>`;
+            return svg;
+        }
+
+        // Render cards on the table
+        function updateUI() {
+            document.getElementById('score-display').innerText = score;
+            document.getElementById('deck-count').innerText = deck.length;
+            
+            const container = document.getElementById('table-container');
+            container.innerHTML = '';
+            
+            table.forEach((frac, index) => {
+                const isSelected = selectedIndexes.includes(index);
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-3xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 border-4 ${isSelected ? 'card-selected' : 'border-white card-hover shadow-xl'}`;
+                card.onclick = () => handleCardClick(index);
+                
+                // Card content
+                card.innerHTML = `
+                    <div class="mb-4">
+                        ${getPizzaSVG(frac.n, frac.d)}
+                    </div>
+                    <div class="flex flex-col items-center text-4xl font-bold text-gray-800">
+                        <span>${frac.n}</span>
+                        <div class="w-12 h-1.5 bg-gray-800 my-1 rounded-full"></div>
+                        <span>${frac.d}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            // Check game over
+            if (table.length === 0) {
+                showToast("🎉 จบเกม! คุณจับคู่เก่งมาก!", "🏆");
+            }
+        }
+
+        // Handle card selection
+        function handleCardClick(index) {
+            if (selectedIndexes.includes(index)) {
+                // Deselect
+                selectedIndexes = selectedIndexes.filter(i => i !== index);
+            } else {
+                // Select
+                if (selectedIndexes.length < 2) {
+                    selectedIndexes.push(index);
+                }
+            }
+            updateUI();
+
+            // If 2 selected, trigger modal
+            if (selectedIndexes.length === 2) {
+                setTimeout(openModal, 400); // slight delay for visual selection
+            }
+        }
+
+        // Open challenge modal
+        function openModal() {
+            const fracA = table[selectedIndexes[0]];
+            const fracB = table[selectedIndexes[1]];
+            
+            // Setup Visuals
+            const visuals = document.getElementById('modal-visuals');
+            visuals.innerHTML = `
+                <div class="flex flex-col items-center">
+                    ${getPizzaSVG(fracA.n, fracA.d, 80)}
+                    <span class="font-bold text-xl mt-2">${fracA.n}/${fracA.d}</span>
+                </div>
+                <div class="text-3xl font-bold text-orange-500">+</div>
+                <div class="flex flex-col items-center">
+                    ${getPizzaSVG(fracB.n, fracB.d, 80)}
+                    <span class="font-bold text-xl mt-2">${fracB.n}/${fracB.d}</span>
+                </div>
+            `;
+
+            // Reset Inputs & Views
+            document.getElementById('input-lcd').value = '';
+            document.getElementById('input-num').value = '';
+            document.getElementById('step-lcd').style.display = 'block';
+            document.getElementById('step-sum').style.display = 'none';
+            hideError();
+
+            document.getElementById('game-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('game-modal').classList.add('hidden');
+            selectedIndexes = []; // Clear selection
+            updateUI();
+        }
+
+        // Check if LCD is correct
+        function checkLCD() {
+            const fracA = table[selectedIndexes[0]];
+            const fracB = table[selectedIndexes[1]];
+            const expectedLCM = lcm(fracA.d, fracB.d);
+            const userLCM = parseInt(document.getElementById('input-lcd').value);
+
+            if (userLCM === expectedLCM) {
+                hideError();
+                currentLCM = expectedLCM;
+                // Transition to Step 2
+                document.getElementById('step-lcd').style.display = 'none';
+                document.getElementById('step-sum').style.display = 'block';
+                document.getElementById('display-lcm').innerText = currentLCM;
+                document.getElementById('display-denom').innerText = currentLCM;
+            } else {
+                showError();
+            }
+        }
+
+        // Check if Sum is correct
+        function checkSum() {
+            const fracA = table[selectedIndexes[0]];
+            const fracB = table[selectedIndexes[1]];
+            
+            // Calculate equivalent numerators based on LCM
+            const numA = fracA.n * (currentLCM / fracA.d);
+            const numB = fracB.n * (currentLCM / fracB.d);
+            const expectedSumNum = numA + numB;
+            
+            const userNum = parseInt(document.getElementById('input-num').value);
+
+            if (userNum === expectedSumNum) {
+                // Success!
+                hideError();
+                document.getElementById('game-modal').classList.add('hidden');
+                
+                // Update Game State
+                score++;
+                showToast("ถูกต้อง! เก่งมากพ่อครัว!", "🍕");
+                
+                // Remove used cards (remove larger index first to avoid shifting issues)
+                selectedIndexes.sort((a,b) => b-a).forEach(idx => table.splice(idx, 1));
+                selectedIndexes = [];
+                
+                // Deal new cards
+                dealCards();
+                updateUI();
+            } else {
+                showError();
+            }
+        }
+
+        function showError() {
+            const errDiv = document.getElementById('modal-error');
+            const modalBox = document.querySelector('.pop-in');
+            errDiv.style.display = 'block';
+            
+            // Shake effect
+            modalBox.classList.remove('shake');
+            void modalBox.offsetWidth; // trigger reflow
+            modalBox.classList.add('shake');
+            
+            setTimeout(() => {
+                errDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function hideError() {
+            document.getElementById('modal-error').style.display = 'none';
+        }
+
+        function showToast(text, icon) {
+            const box = document.getElementById('msg-box');
+            document.getElementById('msg-icon').innerText = icon;
+            document.getElementById('msg-text').innerText = text;
+            
+            if (icon === "🍕") {
+                box.className = "fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-green-100 text-green-700 border-2 border-green-400 px-6 py-3 rounded-full shadow-xl font-bold transition-all duration-300 z-50 flex items-center gap-3";
+            } else {
+                box.className = "fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-orange-100 text-orange-700 border-2 border-orange-400 px-6 py-3 rounded-full shadow-xl font-bold transition-all duration-300 z-50 flex items-center gap-3";
+            }
+            
+            // Show
+            box.style.opacity = '1';
+            box.style.transform = 'translate(-50%, -20px)';
+            
+            // Hide after 3s
+            setTimeout(() => {
+                box.style.opacity = '0';
+                box.style.transform = 'translate(-50%, 0)';
+            }, 3000);
+        }
+
+        // Start game on load
+        window.onload = initGame;
+
+    </script>
+</body>
+</html>
